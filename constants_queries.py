@@ -7,3 +7,5 @@ CREATE_USER_TABLE = ('CREATE TABLE IF NOT EXISTS user('
                      'crypto TEXT, '
                      'max_value REAL, '
                      'min_value REAL);')
+
+CHECK_CRYPTO_EXISTENCE = 'SELECT crypto_slug FROM crypto WHERE crypto_slug = ?'
