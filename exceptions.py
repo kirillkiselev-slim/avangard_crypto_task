@@ -1,0 +1,3 @@
+class TokensNotPresentError(Exception):
+    pass
+
