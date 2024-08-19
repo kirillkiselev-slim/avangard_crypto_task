@@ -2,15 +2,19 @@ import asyncio
 import os
 import re
 import sqlite3
+from typing import Tuple
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiogram.enums import ParseMode
 from aiogram.utils.formatting import Text, Bold
 
-from constants_telegram import (START_MESSAGE, EXAMPLE_FORMAT_MESSAGE, COPY_ME, REGEX,
-                                NOT_VALID_FORMAT, CRYPTO_IS_NOT_VALID)
-from constants_queries import CHECK_CRYPTO_EXISTENCE
+from constants_telegram import (START_MESSAGE, EXAMPLE_FORMAT_MESSAGE,
+                                COPY_ME, REGEX, NOT_VALID_FORMAT,
+                                CRYPTO_IS_NOT_VALID,
+                                INCORRECT_MAX_AND_MIN_VALUES,
+                                JUST_ONE_CRYPTO)
+from constants_queries import CHECK_CRYPTO_EXISTENCE, INSERT_USER_CRYPTO
 
 bot = Bot(token=os.getenv('TELEGRAM_TOKEN'))
 dp = Dispatcher()
@@ -35,39 +39,50 @@ async def cmd_format(message: types.Message) -> None:
 
 @dp.message()
 async def handle_input(message: types.Message):
-    users_message = message.text
+    accepted_cryptos = []
+    message_is_valid = validate_users_input(message=message.text)
 
-    user_crypto_dict = {}
-    message_is_valid = validate_users_input(message=users_message)
-    if not message_is_valid:
-        await message.answer(NOT_VALID_FORMAT)
+    if not message_is_valid[1]:
+        warning_message = message_is_valid[0]
+        return await message.answer(warning_message)
 
-    for crypto in users_message:
-        crypto_name, max_val, min_val = crypto
-        user_crypto_dict[crypto_name] = {
-            'max': float(max_val),
-            'min': float(min_val)
-        }
+    user_input = message_is_valid[0]
 
-    for user_crypto, values in user_crypto_dict:
-        with sqlite3.connect('crypto_checker.db') as con:
-            con.cursor()
-            query = con.execute(CHECK_CRYPTO_EXISTENCE, user_crypto)
-            if not query:
-                print(f'{user_crypto}{CRYPTO_IS_NOT_VALID}')
-    print(f'Вы отслеживаете:\n {user_crypto_dict.keys()} - '
-          f'Максимум: {values['max']}, '
-          f'Минимум: {values['min']}\n')
+    with sqlite3.connect('crypto_checker.db') as con:
+        cur = con.cursor()
+
+        for crypto in user_input:
+            crypto_name, max_val, min_val = crypto
+            lower_crypto_name = crypto_name.lower()
+            query = cur.execute(
+                CHECK_CRYPTO_EXISTENCE, (lower_crypto_name,))
+            if float(max_val) <= float(min_val):
+                return await message.answer(
+                    f'Для криптовалюты "{crypto_name}"'
+                    f'{INCORRECT_MAX_AND_MIN_VALUES}')
+            if query.fetchone() is None:
+                return await message.answer(
+                    f'Криптовалюты "{crypto_name}"{CRYPTO_IS_NOT_VALID}')
+
+            cur.execute(
+                INSERT_USER_CRYPTO,
+                (message.from_user.username, lower_crypto_name,
+                 max_val, min_val))
+            accepted_cryptos.append(crypto_name)
+        return await message.answer(
+            f'"{"и ".join([crypto for crypto in accepted_cryptos])} сохранили.')
 
 
-def validate_users_input(message: str) -> bool:
+def validate_users_input(message: str) -> Tuple:
     regex = re.compile(REGEX)
     matches = regex.findall(message.strip())
+
     if not matches:
-        return False
+        return NOT_VALID_FORMAT, False
     if len(matches) != 2:
-        return False
-    return True
+        return JUST_ONE_CRYPTO, False
+
+    return matches, True
 
 
 async def main():
