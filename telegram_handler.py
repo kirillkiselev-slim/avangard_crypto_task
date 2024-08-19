@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 import sqlite3
+from datetime import datetime
 from typing import Tuple
 
 from aiogram import Bot, Dispatcher, types
@@ -13,7 +14,7 @@ from constants_telegram import (START_MESSAGE, EXAMPLE_FORMAT_MESSAGE,
                                 COPY_ME, REGEX, NOT_VALID_FORMAT,
                                 CRYPTO_IS_NOT_VALID,
                                 INCORRECT_MAX_AND_MIN_VALUES,
-                                JUST_ONE_CRYPTO)
+                                JUST_ONE_CRYPTO, CRYPTO_SAVED)
 from constants_queries import CHECK_CRYPTO_EXISTENCE, INSERT_USER_CRYPTO
 
 bot = Bot(token=os.getenv('TELEGRAM_TOKEN'))
@@ -50,6 +51,7 @@ async def handle_input(message: types.Message):
 
     with sqlite3.connect('crypto_checker.db') as con:
         cur = con.cursor()
+        date_added = datetime.now().isoformat()
 
         for crypto in user_input:
             crypto_name, max_val, min_val = crypto
@@ -67,10 +69,11 @@ async def handle_input(message: types.Message):
             cur.execute(
                 INSERT_USER_CRYPTO,
                 (message.from_user.username, lower_crypto_name,
-                 max_val, min_val))
+                 max_val, min_val, date_added))
             accepted_cryptos.append(crypto_name)
         return await message.answer(
-            f'"{"и ".join([crypto for crypto in accepted_cryptos])} сохранили.')
+            f'{" и ".join([crypto for crypto in accepted_cryptos])}'
+            f'{CRYPTO_SAVED}')
 
 
 def validate_users_input(message: str) -> Tuple:
