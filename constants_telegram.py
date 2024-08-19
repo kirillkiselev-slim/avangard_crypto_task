@@ -1,10 +1,7 @@
-import os
-
 from dotenv import load_dotenv
 
 load_dotenv()
 
-COINMARKET_API_KEY = os.getenv('COINMARKET_API_KEY')
 
 REGEX = (r'([a-zA-Z0-9-]+):\s*max:\s*(\d*\.?\d{1,8}?)'
          r'\s*min:\s*(\d*\.?\d{1,8}?)')
@@ -40,3 +37,6 @@ INCORRECT_MAX_AND_MIN_VALUES = (' макс. пороговое значение 
 
 CRYPTO_IS_NOT_VALID = (' не существует, либо она некорректно указана. '
                        'Исправьте, пожалуйста и пришлите сообщение еще раз.')
+
+CRYPTO_SAVED = (' сохранили. Сообщим вам, '
+                'если будет достигнуто одно из значений.')
