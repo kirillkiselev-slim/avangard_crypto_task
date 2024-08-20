@@ -14,3 +14,6 @@ CHECK_CRYPTO_EXISTENCE = 'SELECT crypto_slug FROM crypto WHERE crypto_slug = ?'
 INSERT_USER_CRYPTO = ('INSERT INTO user(user, crypto, max_value,'
                       ' min_value, date_added) VALUES(?, ?, ?, ?, ?);')
 DELETE_USER_CRYPTO = 'DELETE FROM user WHERE user = ?;'
+
+SELECT_USER_CRYPTO = ('SELECT crypto, max_value, min_value FROM '
+                      ' user WHERE user = ?')
