@@ -11,8 +11,6 @@ QUOTES_ENDPOINT = ('https://pro-api.coinmarketcap.com/v2/'
 
 API_KEY = os.getenv('API_KEY')
 
-# LISTING_ENDPOINT_ALL_CRYPTOS = 'https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
-
 HEADERS_COINMARKET = {
     'Accepts': 'application/json',
     'X-CMC_PRO_API_KEY': API_KEY,

@@ -13,19 +13,21 @@ from constants.constants_coinmarket import (LISTING_ENDPOINT_ALL_CRYPTOS,
 from exceptions import (CryptoTableError,
                         EndpointListingError, InputCryptoError)
 
-con = sqlite3.connect('../crypto_checker.db')
+con = sqlite3.connect('crypto_checker.db')
 
 
 def create_tables():
+    """Создаем таблицы crypto и user."""
     try:
         con.execute(CREATE_CRYPTO_TABLE)
         con.execute(CREATE_USER_TABLE)
     except sqlite3.Error as err:
         raise CryptoTableError('Не смогли создать таблицу для криптовалюты'
-                               ' или пользователя, она уже существует.') from err
+                               ' или пользователя') from err
 
 
 def insert_into_crypto():
+    """Заполняем таблицу crypto."""
     with con:
         listings = get_crypto_response()
         data_crypto = listings.get('data')
@@ -37,6 +39,7 @@ def insert_into_crypto():
 
 
 def get_crypto_response():
+    """Получаем slugs всех криптовалют с эндпоинта CoinMarketCap."""
     try:
         response = requests.get(
             LISTING_ENDPOINT_ALL_CRYPTOS, headers=HEADERS_COINMARKET,

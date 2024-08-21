@@ -1,5 +1,7 @@
 
 class Username:
+    """Связывающий класс между main и ботом для получения имя пользователя."""
+
     _instance = None
     username = None
 
