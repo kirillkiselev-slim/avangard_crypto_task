@@ -1,3 +1,4 @@
+import asyncio
 import os
 import re
 from datetime import datetime
@@ -8,6 +9,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiogram.enums import ParseMode
 from aiogram.utils.formatting import Text, Bold
+from dotenv import load_dotenv
 
 from constants.constants_telegram import (START_MESSAGE,
                                           EXAMPLE_FORMAT_MESSAGE,
@@ -20,7 +22,9 @@ from constants.constants_queries import (CHECK_CRYPTO_EXISTENCE,
                                          DELETE_USER_CRYPTO)
 from shared_state import username_instance
 
-db_path = os.path.abspath('crypto_checker.db')
+load_dotenv()
+
+db_path = os.path.join(os.getenv('DB_DIR', 'data'), 'crypto_checker.db')
 bot = Bot(token=os.getenv('TELEGRAM_TOKEN'))
 dp = Dispatcher()
 
@@ -32,6 +36,7 @@ async def cmd_start(message: types.Message) -> None:
         'Привет, ',
         Bold(message.from_user.full_name)
     )
+    print(bot.id)
     await message.answer(**content.as_kwargs())
     await message.answer(START_MESSAGE)
 
@@ -69,7 +74,6 @@ async def handle_input(message: types.Message):
     """
 
     message_is_valid = validate_users_input(message=message.text)
-
     if not message_is_valid[1]:
         warning_message = message_is_valid[0]
         return await message.answer(warning_message)
@@ -79,6 +83,7 @@ async def handle_input(message: types.Message):
     accepted_cryptos = []
     username = message.from_user.username
     username_instance.set_username(username)
+    username_instance.set_user_id(message.from_user.id)
 
     date_added = datetime.now().isoformat()
 
@@ -131,3 +136,6 @@ def validate_users_input(message: str) -> Tuple:
 
 async def crypto_bot_main():
     await dp.start_polling(bot)
+
+if __name__ == '__main__':
+    asyncio.run(crypto_bot_main())
