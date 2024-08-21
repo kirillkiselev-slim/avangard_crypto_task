@@ -1,9 +1,10 @@
-import asyncio
+# import asyncio
 import os
 import re
-import sqlite3
+# import sqlite3
 from datetime import datetime
 from typing import Tuple
+import aiosqlite
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
@@ -19,32 +20,30 @@ from constants.constants_telegram import (START_MESSAGE,
 from constants.constants_queries import (CHECK_CRYPTO_EXISTENCE,
                                          INSERT_USER_CRYPTO,
                                          DELETE_USER_CRYPTO)
-current_username = None
+from shared_state import username_instance
 
+db_path = os.path.abspath('crypto_checker.db')
 bot = Bot(token=os.getenv('TELEGRAM_TOKEN'))
 dp = Dispatcher()
 
 
-def set_username(username: str):
-    global current_username
-    current_username = username
-
-
-def get_username():
-    return current_username
-
-
 @dp.message(Command('start'))
 async def cmd_start(message: types.Message) -> None:
-    username = message.from_user.username
-    set_username(username)
-
     content = Text(
         'Привет, ',
         Bold(message.from_user.full_name)
     )
     await message.answer(**content.as_kwargs())
     await message.answer(START_MESSAGE)
+
+
+@dp.message(Command('stop'))
+async def cmd_stop(message: types.Message) -> None:
+    username = message.from_user.username
+    async with aiosqlite.connect(db_path) as con:
+        await con.execute(DELETE_USER_CRYPTO, (username,))
+        await con.commit()
+    await message.answer(f'Остановили отслеживание.')
 
 
 @dp.message(Command('format'))
@@ -64,33 +63,44 @@ async def handle_input(message: types.Message):
 
     user_input = message_is_valid[0]
 
-    with sqlite3.connect('../crypto_checker.db') as con:
-        accepted_cryptos = []
-        cur = con.cursor()
-        username = message.from_user.username
-        date_added = datetime.now().isoformat()
-        cur.execute(DELETE_USER_CRYPTO, (username,))
+    accepted_cryptos = []
+    username = message.from_user.username
+    username_instance.set_username(username)
+
+    date_added = datetime.now().isoformat()
+
+    async with aiosqlite.connect(db_path) as con:
+        await con.execute(DELETE_USER_CRYPTO, (username,))
+        await con.commit()
 
         for crypto in user_input:
             crypto_name, max_val, min_val = crypto
             lower_crypto_name = crypto_name.lower()
-            query = cur.execute(
-                CHECK_CRYPTO_EXISTENCE, (lower_crypto_name,))
-            if float(max_val) <= float(min_val):
-                return await message.answer(
-                    f'Для криптовалюты "{crypto_name}"'
-                    f'{INCORRECT_MAX_AND_MIN_VALUES}')
-            if query.fetchone() is None:
-                return await message.answer(
-                    f'Криптовалюты "{crypto_name}"{CRYPTO_IS_NOT_VALID}')
-            cur.execute(
-                INSERT_USER_CRYPTO,
-                (username, lower_crypto_name, max_val, min_val, date_added))
 
+            async with con.execute(CHECK_CRYPTO_EXISTENCE, (lower_crypto_name,)) as cursor:
+                query = await cursor.fetchone()
+                if float(max_val) <= float(min_val):
+                    return await message.answer(
+                        f'Для криптовалюты "{crypto_name}"'
+                        f'{INCORRECT_MAX_AND_MIN_VALUES}'
+                    )
+                if query is None:
+                    return await message.answer(
+                        f'Криптовалюты "{crypto_name}"{CRYPTO_IS_NOT_VALID}'
+                    )
+
+            await con.execute(
+                INSERT_USER_CRYPTO,
+                (username, lower_crypto_name, max_val, min_val, date_added)
+            )
             accepted_cryptos.append(crypto_name)
+
+        await con.commit()
+
         return await message.answer(
             f'{" и ".join([crypto for crypto in accepted_cryptos])}'
-            f'{CRYPTO_SAVED}')
+            f'{CRYPTO_SAVED}'
+        )
 
 
 def validate_users_input(message: str) -> Tuple:
@@ -107,7 +117,3 @@ def validate_users_input(message: str) -> Tuple:
 
 async def crypto_bot_main():
     await dp.start_polling(bot)
-
-
-if __name__ == "__main__":
-    asyncio.run(crypto_bot_main())
