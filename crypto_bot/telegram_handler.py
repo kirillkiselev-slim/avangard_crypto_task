@@ -1,7 +1,5 @@
-# import asyncio
 import os
 import re
-# import sqlite3
 from datetime import datetime
 from typing import Tuple
 import aiosqlite
@@ -29,6 +27,7 @@ dp = Dispatcher()
 
 @dp.message(Command('start'))
 async def cmd_start(message: types.Message) -> None:
+    """Реакция на команду /start."""
     content = Text(
         'Привет, ',
         Bold(message.from_user.full_name)
@@ -39,6 +38,7 @@ async def cmd_start(message: types.Message) -> None:
 
 @dp.message(Command('stop'))
 async def cmd_stop(message: types.Message) -> None:
+    """Реакция на команду /stop."""
     username = message.from_user.username
     async with aiosqlite.connect(db_path) as con:
         await con.execute(DELETE_USER_CRYPTO, (username,))
@@ -48,6 +48,7 @@ async def cmd_stop(message: types.Message) -> None:
 
 @dp.message(Command('format'))
 async def cmd_format(message: types.Message) -> None:
+    """Реакция на команду /format."""
     await message.answer(COPY_ME)
     await message.answer(
         EXAMPLE_FORMAT_MESSAGE, parse_mode=ParseMode.MARKDOWN_V2)
@@ -55,6 +56,18 @@ async def cmd_format(message: types.Message) -> None:
 
 @dp.message()
 async def handle_input(message: types.Message):
+    """
+    Обрабатывает сообщения пользователя, проверяя их с помощью регулярных выражений.
+
+    В случае ошибки возвращает предупреждение. Если проверки проходят успешно,
+    все ранее сохранённые данные для пользователя удаляются из базы данных, так как
+    он заново ввёл данные по криптовалютам.
+
+    Затем функция подключается к базе данных, чтобы сохранить новые данные о криптовалютах,
+    включая максимальные и минимальные пороги. Перед сохранением данные проверяются
+    по таблице `crypto`, в которой содержатся slugs всех криптовалют из CoinMarketCap.
+    """
+
     message_is_valid = validate_users_input(message=message.text)
 
     if not message_is_valid[1]:
@@ -104,6 +117,7 @@ async def handle_input(message: types.Message):
 
 
 def validate_users_input(message: str) -> Tuple:
+    """Валидацию с помощью регулярного выражения."""
     regex = re.compile(REGEX)
     matches = regex.findall(message.strip())
 

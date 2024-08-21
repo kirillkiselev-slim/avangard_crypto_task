@@ -25,6 +25,3 @@ class InputCryptoError(Exception):
 class SelectUserCryptoError(Exception):
     pass
 
-
-class TelegramConnectionError:
-    pass
