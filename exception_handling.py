@@ -4,7 +4,7 @@ import requests
 
 from exceptions import TokensNotPresentError, EndpointQuotesError
 
-TOKEN_NAMES = ('API_KEY', 'TELEGRAM_TOKEN', 'TELEGRAM_CHAT_ID')
+TOKEN_NAMES = ('API_KEY', 'TELEGRAM_TOKEN')
 
 
 def check_each_token(tokens: Tuple[str]):

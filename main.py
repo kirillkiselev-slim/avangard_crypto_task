@@ -20,16 +20,18 @@ from shared_state import username_instance
 
 load_dotenv()
 
-DURATION_IN_SECONDS = 25
+DURATION_IN_SECONDS = 300
 
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+
+db_path = os.path.join(os.getenv('DB_DIR', 'data'), 'crypto_checker.db')
 
 
 def check_tokens():
     """Проверяет наличие необходимых токенов."""
     try:
-        check_each_token((API_KEY, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID))
+        check_each_token((API_KEY, TELEGRAM_TOKEN))
     except TokensNotPresentError as err:
         log_handler.logger.critical(err)
         sys.exit()
@@ -42,7 +44,8 @@ async def send_telegram_message(chat_id, message_text):
 def select_user_crypto(user: str) -> Dict:
     """Выбираем из базы данных всю инфу по крипте у пользователя."""
     try:
-        with sqlite3.connect('crypto_checker.db') as con:
+
+        with sqlite3.connect(db_path) as con:
             cur = con.cursor()
             cur.execute(SELECT_USER_CRYPTO, (user,))
             rows = cur.fetchall()
@@ -95,16 +98,17 @@ async def crypto_main():
     """
 
     success_message_sent = False
-    await asyncio.to_thread(check_tokens)
+    check_tokens()
 
     try:
-        await asyncio.to_thread(sql_main)
+        sql_main()
     except Exception as err:
         log_handler.logger.critical(err)
 
     while True:
         try:
             username = username_instance.get_username()
+            user_id = username_instance.get_user_id()
             current_user_data = select_user_crypto(username)
 
             if not current_user_data or not username:
@@ -129,7 +133,7 @@ async def crypto_main():
                             f'Пользователь: {username} получил сообщение'
                             f' о криптовалюте {parsed_name}')
 
-                        await bot.send_message(TELEGRAM_CHAT_ID, message)
+                        await bot.send_message(user_id, message)
                         success_message_sent = True
 
         except Exception as err:

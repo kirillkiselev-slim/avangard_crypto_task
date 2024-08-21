@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 import requests
@@ -13,7 +14,10 @@ from constants.constants_coinmarket import (LISTING_ENDPOINT_ALL_CRYPTOS,
 from exceptions import (CryptoTableError,
                         EndpointListingError, InputCryptoError)
 
-con = sqlite3.connect('crypto_checker.db')
+
+db_path = os.path.join(os.getenv('DB_DIR', 'data'), 'crypto_checker.db')
+
+con = sqlite3.connect(db_path)
 
 
 def create_tables():

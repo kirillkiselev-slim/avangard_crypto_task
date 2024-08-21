@@ -1,0 +1,9 @@
+venv
+.gitignore
+monitor_bot_activity.logs
+__pycache__/
+.idea
+constants/__pycache__
+logging_crypto/__pycache__
+sqlite_tables/__pycache__
+README.md
