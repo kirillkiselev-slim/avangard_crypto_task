@@ -106,9 +106,9 @@ async def crypto_main():
         log_handler.logger.critical(err)
 
     while True:
+        username = username_instance.get_username()
+        user_id = username_instance.get_user_id()
         try:
-            username = username_instance.get_username()
-            user_id = username_instance.get_user_id()
             current_user_data = select_user_crypto(username)
 
             if not current_user_data or not username:
@@ -141,7 +141,7 @@ async def crypto_main():
 
         finally:
             if success_message_sent:
-                await bot.send_message(TELEGRAM_CHAT_ID, DELETE_CRYPTO)
+                await bot.send_message(user_id, DELETE_CRYPTO)
                 success_message_sent = False
 
             await asyncio.sleep(DURATION_IN_SECONDS)
